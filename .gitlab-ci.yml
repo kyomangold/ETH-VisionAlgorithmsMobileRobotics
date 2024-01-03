@@ -1,0 +1,78 @@
+stages:
+  - build
+  - run
+
+variables:
+  DEBIAN_FRONTEND: noninteractive
+
+build_ubuntu20.04:
+  image: ubuntu:20.04
+  stage: build
+  before_script: 
+  - apt update && apt -y install build-essential cmake libopencv-dev libceres-dev xvfb && apt clean
+  script:
+    - cmake .
+    - make
+  artifacts:
+    paths:
+      - main
+
+build_ubuntu18.04:
+  image: ubuntu:18.04
+  stage: build
+  before_script: 
+  - apt update && apt -y install build-essential cmake libopencv-dev libceres-dev xvfb && apt clean
+  script:
+    - cmake .
+    - make
+
+run_ubuntu20.04_parking:
+  image: ubuntu:20.04
+  stage: run
+  before_script: 
+  - apt update && apt -y install build-essential cmake libopencv-dev python3-numpy python3-matplotlib xvfb && apt clean
+  needs:
+    job: build_ubuntu20.04
+    artifacts: true
+  script:
+    - xvfb-run ./main ./data/parking/ -r -f -headless
+    - mv output*.avi output.avi
+    - python3 plot.py poses.txt data/parking/poses.txt --title "Parking Trajectory"
+  artifacts:
+    paths:
+      - output*
+      - trajectory.png
+
+run_ubuntu20.04_kitti:
+  image: ubuntu:20.04
+  stage: run
+  before_script: 
+  - apt update && apt -y install build-essential cmake libopencv-dev python3-numpy python3-matplotlib xvfb && apt clean
+  needs:
+    job: build_ubuntu20.04
+    artifacts: true
+  script:
+    - xvfb-run ./main ./data/kitti05/ -prefix="" -d=6 -r -f -headless
+    - mv output*.avi output.avi
+    - python3 plot.py poses.txt data/kitti05/poses.txt --title "Kitti05 Trajectory"
+  artifacts:
+    paths:
+      - output*
+      - trajectory.png
+
+run_ubuntu20.04_malaga:
+  image: ubuntu:20.04
+  stage: run
+  before_script: 
+  - apt update && apt -y install build-essential cmake libopencv-dev python3-numpy python3-matplotlib xvfb && apt clean
+  needs:
+    job: build_ubuntu20.04
+    artifacts: true
+  script:
+    - xvfb-run ./main ./data/malaga/ -prefix="img" -extension=".jpg" -d=5 -r -f -headless
+    - mv output*.avi output.avi
+    - python3 plot.py poses.txt --title "Malaga Trajectory"
+  artifacts:
+    paths:
+      - output*
+      - trajectory.png
